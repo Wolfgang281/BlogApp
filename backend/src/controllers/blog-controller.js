@@ -1,6 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 
 import BlogModel from "../models/blog-model.js";
+import AppError from "../utils/app-error-util.js";
 import { uploadToCloudinary } from "../utils/cloudinary-util.js";
 
 //& to add a blog (title, description, category, coverImage)
@@ -32,6 +33,51 @@ export const addBlog = async (req, res, next) => {
     message: "Blog Added Successfully",
     newBlog,
   });
+};
+
+export const getBlogs = async (req, res, next) => {
+  try {
+    let blogs = await BlogModel.find();
+    if (blogs.length === 0)
+      return next(new AppError("No Blogs Found", StatusCodes.NOT_FOUND));
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Blogs Fetched Successfully",
+      blogs,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getBlog = async (req, res, next) => {
+  try {
+    let blog = await BlogModel.findById(req.params.blogId);
+    if (!blog)
+      return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Blog Fetched Successfully",
+      blog,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateBlog = async (req, res, next) => {
+  try {
+    let { blogId } = req.params;
+    let userId = req.user._id;
+
+    let blog = await BlogModel.findOne({ _id: blogId, createdBy: userId });
+    if (!blog)
+      return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
+  } catch (error) {
+    next(error);
+  }
 };
 
 /* 
