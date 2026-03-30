@@ -9,6 +9,8 @@ import {
 
 import { authenticate } from "../middlewares/auth-middleware.js";
 import upload from "../middlewares/multer-middleware.js";
+import { validateBody } from "../middlewares/validate-body-middleware.js";
+import { updateBlogSchema } from "../validators/blog-validator.js";
 
 const router = Router();
 
@@ -19,10 +21,11 @@ router.get("/all", getBlogs);
 router.patch(
   "/edit/:blogId",
   authenticate,
+  validateBody(updateBlogSchema),
   upload.single("coverImage"),
   updateBlog,
 );
 
-router.get("/:blogId", getBlog); //TODO:greedy route
+router.get("/:blogId", getBlog);
 
 export default router;

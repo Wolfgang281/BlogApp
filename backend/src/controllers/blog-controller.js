@@ -173,21 +173,71 @@ export const updateBlog = async (req, res, next) => {
 };
 
 export const deleteBlog = async (req, res, next) => {
-  let userId = req.user._id;
-  // delete the image from cloudinary if present
-  // delete the blog from db
+  try {
+    let userId = req.user._id;
+    let { blogId } = req.params;
 
-  // let deletedBlog = await Model.findByIdAndDelete(id)
-  //! after deleting the image and blog
-  await UserModel.findByIdAndUpdate(userId, { $inc: { totalBlogs: -1 } });
-  await UserModel.findByIdAndUpdate(userId, {
-    $pull: { blogs: { $eleMatch: { blogId: deletedBlog._id } } },
-  });
+    let blog = await BlogModel.findOne({ _id: blogId, createdBy: userId });
+    if (!blog)
+      return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
+
+    // Delete image from Cloudinary if it was uploaded there
+    if (blog.coverImage?.publicId) {
+      await deleteFromCloudinary(blog.coverImage.publicId, next);
+    }
+
+    await BlogModel.findByIdAndDelete(blogId);
+
+    await UserModel.findByIdAndUpdate(userId, {
+      $inc: { totalBlogs: -1 },
+      $pull: { blogs: { blogId: blog._id } }, // $pull on array of objects
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Blog Deleted Successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const deleteBlogImage = async (req, res, next) => {
-  // delete the image from cloudinary if present
-  // delete the blog from db
+  try {
+    let { blogId } = req.params;
+    let userId = req.user._id;
+
+    //! 1) find the blog and verify ownership
+    let blog = await BlogModel.findOne({ _id: blogId, createdBy: userId });
+    if (!blog)
+      return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
+
+    //! 2) check if there's actually an image to delete
+    let { imageURL, publicId } = blog.coverImage;
+    if (!imageURL || !publicId)
+      return next(
+        new AppError(
+          "This blog has no cover image to delete",
+          StatusCodes.BAD_REQUEST,
+        ),
+      );
+
+    //! 3) delete from Cloudinary using the stored publicId
+    await deleteFromCloudinary(publicId, next);
+
+    //! 4) reset coverImage fields in DB
+    blog.coverImage.imageURL = "";
+    blog.coverImage.publicId = "";
+    await blog.save();
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Cover image deleted successfully",
+      blog,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /* 

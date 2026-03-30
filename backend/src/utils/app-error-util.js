@@ -20,6 +20,3 @@ class AppError extends Error {
 //! AppError is my derived class or child class
 
 export default AppError;
-
-//! ============= notes ==================
-//TODO: to be added
