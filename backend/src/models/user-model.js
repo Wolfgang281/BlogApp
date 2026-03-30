@@ -32,6 +32,7 @@ const userSchema = new Schema(
           required: true,
           ref: "Blog",
         },
+        _id: false,
       },
     ],
     isVerified: {

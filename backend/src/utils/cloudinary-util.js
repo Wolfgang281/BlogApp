@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import v2 from "../config/cloudinary-config.js";
 
-export const uploadToCloudinary = async (path) => {
+export const uploadToCloudinary = async (path, next) => {
   try {
+    if (!path) return;
     return await v2.uploader.upload(path, {
       resource_type: "image",
       folder: "blogApp",
@@ -14,9 +15,10 @@ export const uploadToCloudinary = async (path) => {
   }
 };
 
-export const deleteFromCloudinary = async (path) => {
-  v2.uploader.destroy();
+export const deleteFromCloudinary = async (publicId, next) => {
   try {
+    if (!publicId) return;
+    return await v2.uploader.destroy(publicId);
   } catch (error) {
     next(error);
   }

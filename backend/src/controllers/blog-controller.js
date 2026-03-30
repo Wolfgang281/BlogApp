@@ -1,38 +1,61 @@
 import { StatusCodes } from "http-status-codes";
 
+import mongoose from "mongoose";
 import BlogModel from "../models/blog-model.js";
+import UserModel from "../models/user-model.js";
 import AppError from "../utils/app-error-util.js";
-import { uploadToCloudinary } from "../utils/cloudinary-util.js";
+import {
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../utils/cloudinary-util.js";
 
 //& to add a blog (title, description, category, coverImage)
 export const addBlog = async (req, res, next) => {
-  //   console.log(req.file);
-  let userId = req.user._id;
-  let { title, description, category } = req.body;
+  try {
+    console.log(req.file);
+    let userId = req.user._id;
+    let { title, description, category } = req.body;
 
-  let imageURL = "";
-  let publicId = "";
-  if (req.file) {
-    //? if file is sent from frontend, then only call uploadToCloud()
-    let { secure_url, public_id } = await uploadToCloudinary(req.file.path);
-    // console.log("uploadedResponse: ", uploadedResponse);
-    imageURL = secure_url;
-    publicId = public_id;
+    let imageURL = "";
+    let publicId = "";
+    if (req.file) {
+      //? if file is sent from frontend, then only call uploadToCloud()
+      let { secure_url, public_id } = await uploadToCloudinary(
+        req.file.path,
+        next,
+      );
+      // console.log("uploadedResponse: ", uploadedResponse);
+      imageURL = secure_url;
+      publicId = public_id;
+    }
+
+    let newBlog = await BlogModel.create({
+      title,
+      description,
+      category,
+      createdBy: userId,
+      coverImage: { imageURL, publicId },
+    });
+
+    await UserModel.findByIdAndUpdate(userId, { $inc: { totalBlogs: 1 } });
+
+    await UserModel.findByIdAndUpdate(userId, {
+      $push: { blogs: { blogId: newBlog._id } },
+    });
+
+    // await UserModel.findByIdAndUpdate(userId, {
+    //   $push: { blogs: { blogId: newBlog._id } },
+    //   $inc: { totalBlogs: 1 },
+    // });
+
+    res.status(StatusCodes.CREATED).json({
+      success: true,
+      message: "Blog Added Successfully",
+      newBlog,
+    });
+  } catch (error) {
+    next(error);
   }
-
-  let newBlog = await BlogModel.create({
-    title,
-    description,
-    category,
-    createdBy: userId,
-    coverImage: { imageURL, publicId },
-  });
-
-  res.status(StatusCodes.CREATED).json({
-    success: true,
-    message: "Blog Added Successfully",
-    newBlog,
-  });
 };
 
 export const getBlogs = async (req, res, next) => {
@@ -53,7 +76,36 @@ export const getBlogs = async (req, res, next) => {
 
 export const getBlog = async (req, res, next) => {
   try {
-    let blog = await BlogModel.findById(req.params.blogId);
+    // let blog = await BlogModel.findById(req.params.blogId).populate({
+    //   path: "createdBy",
+    //   select: "name email totalBlogs",
+    // });
+
+    let blog = await BlogModel.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(req.params.blogId) } },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "createdBy",
+          as: "createdBy",
+        },
+      },
+      {
+        $unwind: "$createdBy",
+      },
+      {
+        $project: {
+          name: "$createdBy.name",
+          email: "$createdBy.email",
+          totalBlogs: "$createdBy.totalBlogs",
+          title: 1,
+          description: 1,
+          coverImage: 1,
+          category: 1,
+        },
+      },
+    ]);
     if (!blog)
       return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
 
@@ -73,11 +125,69 @@ export const updateBlog = async (req, res, next) => {
     let userId = req.user._id;
 
     let blog = await BlogModel.findOne({ _id: blogId, createdBy: userId });
+    // console.log("blog: ", blog); // {}
+    let oldPublicId = blog?.coverImage?.publicId;
+    console.log("oldPublicId: ", oldPublicId);
     if (!blog)
       return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
+
+    //! update blog details like title description and category
+    blog.title = req.body.title || blog.title;
+    blog.description = req.body.description || blog.description;
+    blog.category = req.body.category || blog.category;
+    //! at this point we are just assigning the new values, in database still old values are stored, to update the data use save()
+
+    let publicId;
+    let imageURL;
+
+    if (req.file) {
+      //! user wants to update the image
+      //? upload the new image, delete the old one from cloudinary and replace the secure_url and public_id with the new one in database
+      let { secure_url, public_id } = await uploadToCloudinary(
+        req.file.path,
+        next,
+      );
+      publicId = public_id;
+      imageURL = secure_url;
+
+      blog.coverImage.imageURL = imageURL;
+      blog.coverImage.publicId = publicId;
+    }
+
+    let updatedBlog = await blog.save();
+
+    //! delete the old image -> delete the image, if it is previously uploaded on cloudinary
+    if (blog.coverImage.imageURL.includes("https://res.cloudinary.com")) {
+      let deletedResp = await deleteFromCloudinary(oldPublicId, next);
+      console.log("deletedResp: ", deletedResp);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Blog Updated Successfully",
+      updatedBlog,
+    });
   } catch (error) {
     next(error);
   }
+};
+
+export const deleteBlog = async (req, res, next) => {
+  let userId = req.user._id;
+  // delete the image from cloudinary if present
+  // delete the blog from db
+
+  // let deletedBlog = await Model.findByIdAndDelete(id)
+  //! after deleting the image and blog
+  await UserModel.findByIdAndUpdate(userId, { $inc: { totalBlogs: -1 } });
+  await UserModel.findByIdAndUpdate(userId, {
+    $pull: { blogs: { $eleMatch: { blogId: deletedBlog._id } } },
+  });
+};
+
+export const deleteBlogImage = async (req, res, next) => {
+  // delete the image from cloudinary if present
+  // delete the blog from db
 };
 
 /* 
@@ -118,3 +228,7 @@ let uploadedResponse:  {
   api_key: '334918679458119'
 }
 */
+
+//? updation part -> {$inc: {fieldname: +/-value}}
+//? blogs = [{}]
+//? {blogId}

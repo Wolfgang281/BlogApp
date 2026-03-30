@@ -29,11 +29,12 @@ const blogSchema = new Schema(
       },
     ],
     coverImage: {
-      imageURL: { type: String, required: true },
-      publicId: { type: String, required: true },
+      imageURL: { type: String },
+      publicId: { type: String },
     },
     createdBy: {
       type: Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
   },
