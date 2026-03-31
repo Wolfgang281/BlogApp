@@ -190,7 +190,7 @@ export const deleteBlog = async (req, res, next) => {
 
     await UserModel.findByIdAndUpdate(userId, {
       $inc: { totalBlogs: -1 },
-      $pull: { blogs: { blogId: blog._id } }, // $pull on array of objects
+      $pull: { blogs: { blogId: blog._id } },
     });
 
     res.status(StatusCodes.OK).json({

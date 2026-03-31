@@ -26,8 +26,6 @@ export const addBlogSchema = Joi.object({
     }),
 });
 
-const objectIdRegex = /^[a-fA-F0-9]{24}$/;
-
 //! for update, all fields are optional (user may update only title, or only image, etc.)
 //! but at least one field must be present — otherwise why call the route at all
 export const updateBlogSchema = Joi.object({

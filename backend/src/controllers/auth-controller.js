@@ -1,13 +1,24 @@
 import { StatusCodes } from "http-status-codes";
 
+import crypto from "node:crypto";
+import { ENV_VAR } from "../config/index.js";
 import UserModel from "../models/user-model.js";
 import AppError from "../utils/app-error-util.js";
 import { generateJWT } from "../utils/jwt-util.js";
+import { sendVerificationLink } from "../utils/nodemailer-util.js";
 
 export const register = async (req, res, next) => {
   try {
     let { name, email, password } = req.body;
     let newUser = await UserModel.create({ name, email, password });
+
+    let rawToken = await newUser.generateVerificationToken();
+    console.log("rawToken: ", rawToken);
+
+    let verificationLink = `${ENV_VAR.FRONTEND_URL}/api/auth/verify-email/${rawToken}`;
+
+    let result = await sendVerificationLink(email, verificationLink, next);
+    console.log("result: ", result);
 
     res.status(StatusCodes.CREATED).json({
       success: true,
@@ -71,3 +82,49 @@ export const currentUser = async (req, res, next) => {
     payload: req.user, //? this is coming from middleware
   });
 };
+
+export const verifyEmail = async (req, res, next) => {
+  try {
+    let { rawToken } = req.params;
+    let hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
+
+    let user = await UserModel.findOne({
+      isVerifiedToken: hashedToken,
+    });
+    console.log("user: ", user.isVerifiedTokenExpire);
+    console.log(Date.now());
+
+    if (!user) return next(new AppError("No User Found", 404));
+
+    if (user.isVerifiedTokenExpire < Date.now()) {
+      return next(new AppError("Verification Link is Expired", 410));
+    }
+
+    user.isVerified = true;
+    user.isVerifiedToken = undefined;
+    user.isVerifiedTokenExpire = undefined;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Email Successfully Verified",
+    });
+  } catch (error) {
+    if (user) {
+      user.isVerifiedToken = undefined;
+      user.isVerifiedTokenExpire = undefined;
+      await user.save();
+    }
+    next(error);
+  }
+};
+
+export const forgotPassword = async (req, res, next) => {};
+
+export const resetPassword = async (req, res, next) => {};
+
+//! === get user profile ===

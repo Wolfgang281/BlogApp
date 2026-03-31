@@ -5,6 +5,7 @@ import {
   login,
   logout,
   register,
+  verifyEmail,
 } from "../controllers/auth-controller.js";
 
 import { authenticate } from "../middlewares/auth-middleware.js";
@@ -19,5 +20,7 @@ router.post("/login", validateBody(loginSchema), login);
 router.post("/logout", authenticate, logout);
 
 router.get("/current", authenticate, currentUser);
+
+router.get("/verify-email/:rawToken", verifyEmail);
 
 export default router;
