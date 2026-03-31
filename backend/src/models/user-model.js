@@ -44,6 +44,8 @@ const userSchema = new Schema(
       type: String,
     }, //? this will save the hashed token
     isVerifiedTokenExpire: { type: Date },
+    isPremium: { type: Boolean, default: false },
+    paymentId: { type: String },
   },
   { timestamps: true, versionKey: false },
 );
