@@ -9,6 +9,7 @@ import {
 } from "../controllers/blog-controller.js";
 
 import { authenticate } from "../middlewares/auth-middleware.js";
+import { isVerified } from "../middlewares/is-verified-middleware.js";
 import upload from "../middlewares/multer-middleware.js";
 import { validateBody } from "../middlewares/validate-body-middleware.js";
 import {
@@ -21,6 +22,7 @@ const router = Router();
 router.post(
   "/add",
   authenticate,
+  isVerified,
   upload.single("coverImage"),
   validateBody(addBlogSchema),
   addBlog,
@@ -31,6 +33,7 @@ router.get("/all", getBlogs);
 router.patch(
   "/edit/:blogId",
   authenticate,
+  isVerified,
   validateBody(updateBlogSchema),
   upload.single("coverImage"),
   updateBlog,
@@ -38,6 +41,6 @@ router.patch(
 
 router.get("/:blogId", getBlog);
 
-router.delete("/delete/:blogId", authenticate, deleteBlog);
+router.delete("/delete/:blogId", authenticate, isVerified, deleteBlog);
 
 export default router;

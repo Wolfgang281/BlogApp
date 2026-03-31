@@ -106,7 +106,7 @@ export const getBlog = async (req, res, next) => {
         },
       },
     ]);
-    if (!blog)
+    if (blog.length === 0)
       return next(new AppError("No Blog Found", StatusCodes.NOT_FOUND));
 
     res.status(StatusCodes.OK).json({

@@ -97,10 +97,13 @@ export const verifyEmail = async (req, res, next) => {
     console.log("user: ", user.isVerifiedTokenExpire);
     console.log(Date.now());
 
-    if (!user) return next(new AppError("No User Found", 404));
+    if (!user)
+      return next(new AppError("No User Found", StatusCodes.NOT_FOUND));
 
     if (user.isVerifiedTokenExpire < Date.now()) {
-      return next(new AppError("Verification Link is Expired", 410));
+      return next(
+        new AppError("Verification Link is Expired", StatusCodes.GONE),
+      );
     }
 
     user.isVerified = true;
