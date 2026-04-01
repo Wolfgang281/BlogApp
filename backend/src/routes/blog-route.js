@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   addBlog,
   deleteBlog,
+  generateContent,
   getBlog,
   getBlogs,
   updateBlog,
@@ -42,5 +43,7 @@ router.patch(
 router.get("/:blogId", getBlog);
 
 router.delete("/delete/:blogId", authenticate, isVerified, deleteBlog);
+
+router.post("/generate-content", authenticate, upload.none(), generateContent);
 
 export default router;

@@ -7,7 +7,7 @@ export const sendVerificationLink = async (to, message, next) => {
       from: ENV_VAR.NODEMAILER_EMAIL,
       to,
       subject: "Email for Account Verification",
-      text: "Please don not reply",
+      text: "Please don't reply",
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
         <h2>Verify Your Account</h2>

@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
+//FIXME: make separate exports
 export const ENV_VAR = {
   PORT: process.env.PORT,
   MONGODB_URL: process.env.MONGODB_URL,
@@ -14,4 +15,5 @@ export const ENV_VAR = {
   NODEMAILER_SERVICE: process.env.NODEMAILER_SERVICE,
   NODEMAILER_SECURE: process.env.NODEMAILER_SECURE,
   NODEMAILER_PORT: process.env.NODEMAILER_PORT,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };
