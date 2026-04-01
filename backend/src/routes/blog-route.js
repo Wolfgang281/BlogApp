@@ -11,6 +11,7 @@ import {
 
 import { authenticate } from "../middlewares/auth-middleware.js";
 import { isVerified } from "../middlewares/is-verified-middleware.js";
+import { checkPremium } from "../middlewares/isPremium-middleware.js";
 import upload from "../middlewares/multer-middleware.js";
 import { validateBody } from "../middlewares/validate-body-middleware.js";
 import {
@@ -44,6 +45,12 @@ router.get("/:blogId", getBlog);
 
 router.delete("/delete/:blogId", authenticate, isVerified, deleteBlog);
 
-router.post("/generate-content", authenticate, upload.none(), generateContent);
+router.post(
+  "/generate-content",
+  authenticate,
+  checkPremium,
+  upload.none(),
+  generateContent,
+);
 
 export default router;

@@ -17,3 +17,10 @@ export const ENV_VAR = {
   NODEMAILER_PORT: process.env.NODEMAILER_PORT,
   GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };
+
+export const RAZORPAY = {
+  API_KEY: process.env.RAZORPAY_API_KEY,
+  KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+};
+
+export const AI_FEATURE_PRICE = process.env.AI_FEATURE_PRICE;
